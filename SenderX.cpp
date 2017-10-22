@@ -1,22 +1,22 @@
 //============================================================================
 //
-//% Student Name 1: student1
-//% Student 1 #: 123456781
-//% Student 1 userid (email): stu1 (stu1@sfu.ca)
+//% Student Name 1: Hardeep Kaur Takhar
+//% Student 1 #: 301270446
+//% Student 1 hktakhar@sfu.ca
 //
-//% Student Name 2: student2
-//% Student 2 #: 123456782
-//% Student 2 userid (email): stu2 (stu2@sfu.ca)
+//% Student Name 2: Alfonso Diaz
+//% Student 2 #: 301215253
+//% Student adiazalo@sfu.ca
 //
 //% Below, edit to list any people who helped you with the code in this file,
 //%      or put 'None' if nobody helped (the two of) you.
 //
-// Helpers: _everybody helped us/me with the assignment (list names or put 'None')__
+// Helpers: TA's
 //
 // Also, list any resources beyond the course textbooks and the course pages on Piazza
 // that you used in making your submission.
 //
-// Resources:  ___________
+// Resources:  Given txt files used for reference
 //
 //%% Instructions:
 //% * Put your name(s), student number(s), userid(s) in the above section.
@@ -37,7 +37,7 @@
 #include <string.h> // for memset()
 #include <errno.h>
 #include <fcntl.h>	// for O_RDWR
-# include <math.h> //math
+# include <math.h> 	//math
 #include <valarray>     // std::valarray
 
 #include "myIO.h"
@@ -73,19 +73,16 @@ prepared or if the input file is empty (i.e. has 0 length).
 
 void SenderX::genBlk(blkT blkBuf)
 {
-
-	// ********* The next line needs to be changed ***********
-	int blkNumComp = 255-blkNum; //complement
+	int blkNumComp = 255-blkNum; //complement of blkNum
 	uint8_t checksum;
 
-	if (-1 == (bytesRd = myRead(transferringFileD, &blkBuf[3], CHUNK_SZ ))){ //note: &blkBuf[3]
+	if (-1 == (bytesRd = myRead(transferringFileD, &blkBuf[3], CHUNK_SZ ))){ //note: &blkBuf[3] since this is the starting position of the chunk
 		ErrorPrinter("myRead(transferringFileD, &blkBuf[0], CHUNK_SZ )", __FILE__, __LINE__, errno);
-		cout << "ERROR HERE" << endl;
+		cout << "ERROR HERE" << endl;// for testing
 	}
-	uint8_t eotPointer = EOT;
+	uint8_t eotPointer = EOT; //EOT byte
 
 	// checking value of blkNum
-
 	while(blkNum >255){
 		blkNum=blkNum-256;
 	}
@@ -93,42 +90,37 @@ void SenderX::genBlk(blkT blkBuf)
 	blkBuf[1]=blkNum;
 	blkBuf[2]=blkNumComp;
 
+//2 cases of Crcflg
 	if(!Crcflg){
 
-		// chunk
 		int paddingPos;//Starting position for padding
 		int EOTPos=132;
 		unsigned char* buf;
 		int chk_sum=0;//uint8_t chk_sum=0;
 
 		//Padding
-				paddingPos=bytesRd+3;
-				//cout<< "out of loop"<<paddingPos<<endl;
-				if(bytesRd!=CHUNK_SZ){
-					cout<< "entered if"<<paddingPos<<bytesRd<<endl;
-					while (paddingPos<131){
-						blkBuf[paddingPos]= CTRL_Z; //Should work without +3
-
-						paddingPos++;
-						cout<<"Loop"<<paddingPos<<endl;
-					};
-				};
+		paddingPos=bytesRd+3;
+		if(bytesRd!=CHUNK_SZ){
+			cout<<"paddingPos"<<paddingPos<<" bytesRd"<<bytesRd<<endl; //for testing
+			while (paddingPos<131){
+				blkBuf[paddingPos]= CTRL_Z; //Adding CTRL_Z as padding
+				paddingPos++;
+			};
+		};
+		//checksum
 		for(int i=3;i<CHUNK_SZ+3;i++){
 			chk_sum+=blkBuf[i];
 		};
+		//checking checksum
 		while(chk_sum >255){
 			chk_sum=chk_sum-256;
 		}
 		blkBuf[131] = uint8_t(chk_sum);
-
+		//EOT
 		if(bytesRd ==0){
 			myWrite(mediumD, &eotPointer, 1);
 			myWrite(mediumD, &eotPointer, 1);
 		}
-
-
-
-
 	}else{
 
 
@@ -136,35 +128,34 @@ void SenderX::genBlk(blkT blkBuf)
 		unsigned char* bufCRC;
 		//Padding
 		paddingPosCRC=bytesRd+3;
-		//cout<< "out of loop"<<paddingPos<<endl;
 		if(bytesRd!=CHUNK_SZ){
 			while (paddingPosCRC<132){
-				blkBuf[paddingPosCRC]= CTRL_Z; //Should work without +3
+				blkBuf[paddingPosCRC]= CTRL_Z; //Adding CTRL_Z as padding
 
 				paddingPosCRC++;
 			};
 		};
-		// chunk
-
 
 		uint16_t crc_temp;
 
-		crc16ns(&crc_temp,&blkBuf[3]); // need to change either some var or 131 blkBuf &blkBuf[3]
-		cout <<"crc_temp"<<crc_temp<<endl;
+		crc16ns(&crc_temp,&blkBuf[3]); //note: &blkBuf[3] since this is the starting position of the chunk
+		cout <<"crc_temp"<<crc_temp<<endl; //for testing
+
 		//shifting
+		//low 8 bytes
 		blkBuf[132]=static_cast <uint8_t> (crc_temp);
-		cout <<"low"<<blkBuf[131]<<endl;
+		cout <<"low"<<blkBuf[131]<<endl; //for testing
+		//high 8 bytes
 		int high = crc_temp;
 		high  >>=8;
 		blkBuf[131] = static_cast <uint8_t> (high);// high should be sent first
-		cout <<"high"<<blkBuf[132]<<endl;
+		cout <<"high"<<blkBuf[132]<<endl; //for testing
 
+		//EOT
 		if(bytesRd ==0){
 			myWrite(mediumD, &eotPointer, 1);
 			myWrite(mediumD, &eotPointer, 1);
 		}
-
-
 	};
 	};
 
@@ -216,4 +207,3 @@ void SenderX::sendFile()
 		result = "Done";
 	}
 }
-
