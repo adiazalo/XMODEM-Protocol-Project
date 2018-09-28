@@ -1,0 +1,4 @@
+Upon testing the code three times, we get the following output:
+Hello
+          Hello
+                    Hello
